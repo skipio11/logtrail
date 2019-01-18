@@ -1,10 +1,10 @@
 {
   "name": "logtrail",
-  "version": "0.1.29",
+  "version": "0.1.30",
   "description": "Plugin to view, search & tail logs in Kibana",
   "main": "index.js",
   "kibana": {
-    "version": "6.3.2"
+    "version": "6.5.4"
   },
   "repository": {
     "type": "git",

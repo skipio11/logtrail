@@ -94,7 +94,8 @@ function convertToClientFormat(selectedConfig, esResponse) {
 function getDefaultTimeRangeToSearch(selectedConfig) {
   var defaultTimeRangeToSearch = null;
   var moment = require('moment');
-  if (selectedConfig.default_time_range_in_minutes !== 0) {
+  if (selectedConfig.default_time_range_in_minutes && 
+    selectedConfig.default_time_range_in_minutes !== 0) {
     defaultTimeRangeToSearch = moment().subtract(
       selectedConfig.default_time_range_in_minutes,'minutes').valueOf();
   } else if (selectedConfig.default_time_range_in_days !== 0) {
@@ -158,6 +159,14 @@ module.exports = function (server) {
 
       //By default Set sorting column to timestamp
       searchRequest.body.sort[0][selectedConfig.fields.mapping.timestamp] = {'order':request.payload.order ,'unmapped_type': 'boolean'};
+
+      // If secondary sorting field is present then set secondary sort.
+      let secondarySortField = selectedConfig.fields.secondary_sort_field;
+      if (secondarySortField != undefined) {
+        if (secondarySortField.length > 0) {
+          searchRequest.body.sort.push(secondarySortField)
+        }
+      }
 
       //If hostname is present then term query.
       if (request.payload.hostname != null) {
@@ -253,13 +262,20 @@ module.exports = function (server) {
       };
 
       callWithRequest(request,'search',hostAggRequest).then(function (resp) {
-        //console.log(JSON.stringify(resp));//.aggregations.hosts.buckets);
+        if (!resp.aggregations) {
+          reply({
+            ok: false,
+            resp: {
+              msg: 'Check if the index pattern ' + selectedConfig.es.default_index + ' exists'
+            }
+          });
+          return;
+        }
         reply({
           ok: true,
           resp: resp.aggregations.hosts.buckets
         });
       }).catch(function (resp) {
-
         if(resp.isBoom) {
           reply(resp);
         } else {
